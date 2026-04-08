@@ -63,14 +63,22 @@ def parse_optimization_xml(xml_path):
 def analyze_single(xml_path, verbose=True):
     """Analyze a single optimization XML file."""
     filename = os.path.basename(xml_path).replace(".xml", "")
-    parts = filename.split("_", 1)
+    # Known EA names (may contain underscores)
+    known_eas = ["EMA_ADR", "SessionBreakout", "MTFStructure", "RSIDivergence", "OBRetest"]
 
-    if len(parts) >= 2:
-        ea_name = parts[0]
-        symbol = parts[1]
-    else:
-        ea_name = filename
-        symbol = "Unknown"
+    ea_name = "Unknown"
+    symbol = "Unknown"
+    for ea in known_eas:
+        if filename.startswith(ea + "_"):
+            ea_name = ea
+            symbol = filename[len(ea) + 1:]
+            break
+
+    if ea_name == "Unknown":
+        parts = filename.rsplit("_", 1)
+        if len(parts) >= 2:
+            ea_name = parts[0]
+            symbol = parts[1]
 
     results = parse_optimization_xml(xml_path)
     if not results:
@@ -142,7 +150,7 @@ def analyze_single(xml_path, verbose=True):
 def analyze_all(results_dir=RESULTS_DIR):
     """Analyze all XML files in results directory."""
     print("=" * 80)
-    print(f"OKISIGNAL OPTIMIZATION ANALYSIS — {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    print(f"OKISIGNAL OPTIMIZATION ANALYSIS -{datetime.now().strftime('%Y-%m-%d %H:%M')}")
     print("=" * 80)
 
     all_summaries = []

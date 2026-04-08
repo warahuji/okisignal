@@ -211,6 +211,15 @@ ulong SendMarketOrder(string symbol, ENUM_SIGNAL_DIR dir, double lot,
    req.comment  = comment;
    req.deviation = 30; // 3 pips slippage allowance
 
+   //--- Auto-detect filling mode
+   long fillType = SymbolInfoInteger(symbol, SYMBOL_FILLING_MODE);
+   if((fillType & SYMBOL_FILLING_FOK) != 0)
+      req.type_filling = ORDER_FILLING_FOK;
+   else if((fillType & SYMBOL_FILLING_IOC) != 0)
+      req.type_filling = ORDER_FILLING_IOC;
+   else
+      req.type_filling = ORDER_FILLING_RETURN;
+
    if(dir == SIGNAL_BUY)
    {
       req.type  = ORDER_TYPE_BUY;
@@ -267,6 +276,15 @@ bool PartialClose(ulong posTicket, double closeLot)
    req.volume   = closeLot;
    req.magic    = magic;
    req.deviation = 30;
+
+   //--- Auto-detect filling mode
+   long fillType = SymbolInfoInteger(symbol, SYMBOL_FILLING_MODE);
+   if((fillType & SYMBOL_FILLING_FOK) != 0)
+      req.type_filling = ORDER_FILLING_FOK;
+   else if((fillType & SYMBOL_FILLING_IOC) != 0)
+      req.type_filling = ORDER_FILLING_IOC;
+   else
+      req.type_filling = ORDER_FILLING_RETURN;
 
    if(type == POSITION_TYPE_BUY)
    {

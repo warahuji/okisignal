@@ -1,1 +1,23 @@
-[]
+[
+  {
+    "ea": "EMA_ADR",
+    "symbol": "USDJPY",
+    "file": "D:\\claudecode\\okisignal\\optimizer\\results\\EMA_ADR_USDJPY.xml",
+    "total_combinations": 133,
+    "profitable_count": 0,
+    "best": {
+      "profit": -4475.0,
+      "pf": 0.82878,
+      "dd_pct": 7.9028,
+      "trades": 73,
+      "sharpe": -4.017827,
+      "recovery": -0.559935,
+      "expected_payoff": -61.30137,
+      "params": {
+        "InpSLMult": 2.75,
+        "InpTP1Mult": 1.75,
+        "InpTP2Mult": 1.5
+      }
+    }
+  }
+]
