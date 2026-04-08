@@ -3,20 +3,23 @@
     "ea": "EMA_ADR",
     "symbol": "USDJPY",
     "file": "D:\\claudecode\\okisignal\\optimizer\\results\\EMA_ADR_USDJPY.xml",
-    "total_combinations": 133,
-    "profitable_count": 0,
+    "total_combinations": 398,
+    "profitable_count": 27,
     "best": {
-      "profit": -4475.0,
-      "pf": 0.82878,
-      "dd_pct": 7.9028,
-      "trades": 73,
-      "sharpe": -4.017827,
-      "recovery": -0.559935,
-      "expected_payoff": -61.30137,
+      "profit": 10026.0,
+      "pf": 1.101911,
+      "dd_pct": 11.5871,
+      "trades": 173,
+      "sharpe": 1.669133,
+      "recovery": 0.720466,
+      "expected_payoff": 57.953757,
       "params": {
-        "InpSLMult": 2.75,
-        "InpTP1Mult": 1.75,
-        "InpTP2Mult": 1.5
+        "InpFastEMA": 21.0,
+        "InpSlowEMA": 35.0,
+        "InpADXMin": 15.0,
+        "InpSLMult": 1.75,
+        "InpTP1Mult": 2.5,
+        "InpTP2Mult": 4.0
       }
     }
   }

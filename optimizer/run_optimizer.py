@@ -22,7 +22,7 @@ import argparse
 
 # === Configuration ===
 MT5_TERMINAL = r"D:\xm\terminal64.exe"
-MT5_DATA_DIR = r"C:\Users\daisuke\AppData\Roaming\MetaQuotes\Terminal\CDB671518263228BAF394C193A24CAB5"
+MT5_DATA_DIR = r"C:\Users\daisuke\AppData\Roaming\MetaQuotes\Terminal\F5969E95BA9A52F08900E609CFE3E69E"
 MQL5_DIR = os.path.join(MT5_DATA_DIR, "MQL5")
 
 RESULTS_DIR = r"D:\claudecode\okisignal\optimizer\results"
@@ -349,55 +349,90 @@ def main():
     print(f"Start: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"{'='*60}")
 
+    # Progress log file for monitoring
+    log_path = os.path.join(RESULTS_DIR, "_progress.log")
     run_index = 0
     completed = 0
     failed = 0
+    failed_list = []
+
+    def log(msg):
+        """Write to both stdout and progress log file."""
+        print(msg)
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}\n")
+
+    # Clear previous log
+    with open(log_path, "w", encoding="utf-8") as f:
+        f.write(f"OkiSignal Optimizer started at {datetime.now()}\n")
+        f.write(f"Strategies: {eas}\nSymbols: {symbols}\nTotal: {total_runs}\n\n")
 
     for ea_name in eas:
         if ea_name not in STRATEGIES:
-            print(f"Unknown strategy: {ea_name}")
+            log(f"Unknown strategy: {ea_name}")
             continue
 
         strategy = STRATEGIES[ea_name]
 
         # Generate .set file once per EA
-        set_filename = generate_set_file(ea_name, strategy["params"])
+        try:
+            set_filename = generate_set_file(ea_name, strategy["params"])
+        except Exception as e:
+            log(f"ERROR generating .set for {ea_name}: {e}")
+            failed += len(symbols)
+            failed_list.append(f"{ea_name} (set file error: {e})")
+            continue
 
         for symbol in symbols:
             run_index += 1
-            print(f"\n[{run_index}/{total_runs}] {ea_name} x {symbol}")
+            log(f"\n[{run_index}/{total_runs}] {ea_name} x {symbol}")
             print("-" * 40)
 
-            # Generate .ini file
-            ini_path, report_rel = generate_ini_file(
-                ea_name, symbol, set_filename, run_index
-            )
+            try:
+                # Generate .ini file
+                ini_path, report_rel = generate_ini_file(
+                    ea_name, symbol, set_filename, run_index
+                )
 
-            # Run optimization
-            success = run_mt5_optimization(
-                ini_path, ea_name, symbol, report_rel, args.timeout
-            )
+                # Run optimization
+                success = run_mt5_optimization(
+                    ini_path, ea_name, symbol, report_rel, args.timeout
+                )
 
-            if success:
-                completed += 1
-            else:
+                if success:
+                    completed += 1
+                    log(f"  OK: {ea_name} x {symbol}")
+                else:
+                    failed += 1
+                    failed_list.append(f"{ea_name} x {symbol} (no report)")
+                    log(f"  FAIL: {ea_name} x {symbol} - no report file")
+
+            except Exception as e:
                 failed += 1
+                failed_list.append(f"{ea_name} x {symbol} ({e})")
+                log(f"  ERROR: {ea_name} x {symbol} - {e}")
 
+            # Collect reports after each run (incremental)
+            collect_reports()
             time.sleep(3)
 
-    # Collect reports to our results dir
-    print(f"\nCollecting reports...")
+    # Final collection
+    log(f"\nFinal report collection...")
     count = collect_reports()
-    print(f"Copied {count} report files to {RESULTS_DIR}")
+    log(f"Total report files in results: {count}")
 
-    print(f"\n{'='*60}")
-    print(f"DONE: {completed} completed, {failed} failed")
-    print(f"End: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"{'='*60}")
+    log(f"\n{'='*60}")
+    log(f"DONE: {completed} completed, {failed} failed out of {total_runs}")
+    log(f"End: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    if failed_list:
+        log(f"\nFailed runs:")
+        for f_item in failed_list:
+            log(f"  - {f_item}")
+    log(f"{'='*60}")
 
     # Analyze
     if completed > 0:
-        print(f"\nAnalyzing results...")
+        log(f"\nAnalyzing results...")
         os.system(f'python "{os.path.join(os.path.dirname(__file__), "analyze_results.py")}"')
 
 
