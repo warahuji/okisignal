@@ -133,6 +133,50 @@ STRATEGIES = {
 SYMBOLS = ["USDJPY", "EURUSD", "GBPUSD", "AUDUSD", "GBPJPY", "EURJPY", "AUDJPY", "XAUUSD"]
 
 
+def find_files_recursive(directory, name_prefix, max_depth=3):
+    """Find files matching prefix in directory tree."""
+    found = []
+    for root, dirs, files in os.walk(directory):
+        depth = root.replace(directory, "").count(os.sep)
+        if depth >= max_depth:
+            dirs.clear()
+            continue
+        for f in files:
+            if f.startswith(name_prefix) and f.endswith(".xml"):
+                found.append(os.path.join(root, f))
+    return found
+
+
+def find_report_file(report_name):
+    """Search for MT5 report file in common locations."""
+    search_dirs = [
+        MT5_DATA_DIR,
+        TESTER_DIR,
+        os.path.dirname(MT5_TERMINAL),
+        os.path.join(MT5_DATA_DIR, "Tester"),
+        RESULTS_DIR,
+    ]
+
+    # Direct path checks
+    for d in search_dirs:
+        for ext in [".xml", ".htm", ".html"]:
+            p = os.path.join(d, report_name + ext)
+            if os.path.exists(p):
+                return p
+
+    # Recursive search in MT5 data dir
+    found = find_files_recursive(MT5_DATA_DIR, report_name, max_depth=4)
+    if found:
+        return found[0]
+
+    # Also check MT5 install dir
+    found = find_files_recursive(os.path.dirname(MT5_TERMINAL), report_name, max_depth=4)
+    if found:
+        return found[0]
+
+    return None
+
+
 def generate_set_file(ea_name, params, symbol):
     """Generate .set file for MT5 optimization parameters."""
     set_dir = os.path.join(MQL5_DIR, "Profiles", "Tester")
@@ -159,7 +203,7 @@ def generate_set_file(ea_name, params, symbol):
 
     content = "\n".join(lines) + "\n"
 
-    with open(set_path, "w", encoding="utf-16-le") as f:
+    with open(set_path, "w", encoding="ascii") as f:
         f.write(content)
 
     return set_path
@@ -171,7 +215,6 @@ def generate_ini_file(ea_name, symbol, run_index):
     os.makedirs(RESULTS_DIR, exist_ok=True)
 
     report_name = f"{ea_name}_{symbol}"
-    report_path = os.path.join(RESULTS_DIR, report_name)
 
     ini_content = f"""[Tester]
 Expert=OkiSignal\\{ea_name}
@@ -187,7 +230,7 @@ Currency={CURRENCY}
 Leverage={LEVERAGE}
 ExecutionMode=0
 OptimizationCriterion=0
-Report={report_path}
+Report={report_name}
 ReplaceReport=1
 ShutdownTerminal=1
 """
@@ -196,11 +239,24 @@ ShutdownTerminal=1
     with open(ini_path, "w") as f:
         f.write(ini_content)
 
-    return ini_path, report_path
+    return ini_path, report_name
+
+
+def kill_mt5():
+    """Kill any running MT5 terminal instances."""
+    try:
+        subprocess.run(["taskkill", "/f", "/im", "terminal64.exe"],
+                       capture_output=True, timeout=10)
+        time.sleep(3)  # Wait for process to fully exit
+    except Exception:
+        pass
 
 
 def run_mt5_optimization(ini_path, ea_name, symbol, timeout=600):
     """Run MT5 with config and wait for completion."""
+    print(f"  Closing existing MT5...")
+    kill_mt5()
+
     print(f"  Starting MT5: {ea_name} x {symbol}...")
 
     cmd = [MT5_TERMINAL, f"/config:{ini_path}"]
@@ -399,20 +455,30 @@ def main():
             generate_set_file(ea_name, strategy["params"], symbol)
 
             # Generate .ini file
-            ini_path, report_path = generate_ini_file(ea_name, symbol, run_index)
+            ini_path, report_name = generate_ini_file(ea_name, symbol, run_index)
 
             # Run optimization
             success = run_mt5_optimization(ini_path, ea_name, symbol, args.timeout)
 
             if success:
-                xml_file = report_path + ".xml"
-                if os.path.exists(xml_file):
-                    results = parse_xml_results(xml_file)
+                # Search for report in multiple locations
+                xml_file = find_report_file(report_name)
+                if xml_file:
+                    # Copy to our results dir
+                    import shutil
+                    dest = os.path.join(RESULTS_DIR, f"{report_name}.xml")
+                    shutil.copy2(xml_file, dest)
+                    results = parse_xml_results(dest)
                     profitable = sum(1 for r in results if r.get("Profit", 0) > 0)
                     print(f"  Results: {len(results)} combinations, {profitable} profitable")
                     completed += 1
                 else:
-                    print(f"  WARNING: Result file not found: {xml_file}")
+                    print(f"  WARNING: Result file not found for {report_name}")
+                    # List possible locations for debugging
+                    for d in [MT5_DATA_DIR, TESTER_DIR, os.path.dirname(MT5_TERMINAL)]:
+                        found = find_files_recursive(d, report_name, max_depth=3)
+                        if found:
+                            print(f"    Found: {found}")
                     failed += 1
             else:
                 failed += 1
