@@ -11,6 +11,7 @@
 #define MAGIC_RSI_DIVERGENCE    103
 #define MAGIC_EMA_ADR           104
 #define MAGIC_OB_RETEST         105
+#define MAGIC_SMC_FVG           106
 #define MAGIC_LOGGER            999
 
 //--- Signal Direction
@@ -31,6 +32,7 @@ string StrategyName(int magic)
       case MAGIC_RSI_DIVERGENCE:   return "RSIDivergence";
       case MAGIC_EMA_ADR:          return "EMA_ADR";
       case MAGIC_OB_RETEST:        return "OBRetest";
+      case MAGIC_SMC_FVG:          return "SMC_FVG";
       default:                     return "Unknown";
    }
 }
@@ -79,7 +81,7 @@ struct CloseData
 //--- Check if magic number belongs to OkiSignal
 bool IsOkiMagic(int magic)
 {
-   return (magic >= MAGIC_SESSION_BREAKOUT && magic <= MAGIC_OB_RETEST);
+   return (magic >= MAGIC_SESSION_BREAKOUT && magic <= MAGIC_SMC_FVG);
 }
 
 //--- Check if currently in Strategy Tester
