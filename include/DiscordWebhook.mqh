@@ -7,10 +7,10 @@
 #define DISCORD_WEBHOOK_MQH
 
 //--- Color constants for embeds
-#define COLOR_GREEN  3066993   // #2ECC71 — buy / profit
-#define COLOR_RED    15158332  // #E74C3C — sell / loss
-#define COLOR_BLUE   3447003   // #3498DB — info / report
-#define COLOR_GOLD   15844367  // #F1C40F — warning
+#define COLOR_GREEN  3066993
+#define COLOR_RED    15158332
+#define COLOR_BLUE   3447003
+#define COLOR_GOLD   15844367
 
 //+------------------------------------------------------------------+
 //| Send raw JSON payload to Discord webhook                         |
@@ -19,7 +19,6 @@ bool SendDiscordWebhook(string webhookUrl, string jsonPayload)
 {
    if(webhookUrl == "" || StringLen(webhookUrl) < 10) return false;
 
-   //--- Skip in backtest
    if((bool)MQLInfoInteger(MQL_TESTER))
    {
       Print("[Discord] Skipped in backtest: ", StringSubstr(jsonPayload, 0, 100));
@@ -30,7 +29,6 @@ bool SendDiscordWebhook(string webhookUrl, string jsonPayload)
    char result[];
    string headers = "Content-Type: application/json\r\n";
 
-   //--- Convert string to char array (remove trailing null)
    int len = StringToCharArray(jsonPayload, post, 0, WHOLE_ARRAY, CP_UTF8);
    ArrayResize(post, len - 1);
 
@@ -41,7 +39,6 @@ bool SendDiscordWebhook(string webhookUrl, string jsonPayload)
    if(res == 200 || res == 204)
       return true;
 
-   //--- Rate limit handling
    if(res == 429)
    {
       Print("[Discord] Rate limited. Retrying in 2 seconds...");
@@ -57,44 +54,42 @@ bool SendDiscordWebhook(string webhookUrl, string jsonPayload)
 }
 
 //+------------------------------------------------------------------+
-//| Escape JSON string (minimal: quotes and backslashes)             |
+//| Escape JSON string                                               |
 //+------------------------------------------------------------------+
 string JsonEscape(string s)
 {
-   string result = s;
-   StringReplace(result, "\\", "\\\\");
-   StringReplace(result, "\"", "\\\"");
-   StringReplace(result, "\n", "\\n");
-   StringReplace(result, "\r", "");
-   StringReplace(result, "\t", "\\t");
-   return result;
+   string r = s;
+   StringReplace(r, "\\", "\\\\");
+   StringReplace(r, "\"", "\\\"");
+   StringReplace(r, "\n", "\\n");
+   StringReplace(r, "\r", "");
+   StringReplace(r, "\t", "\\t");
+   return r;
 }
 
 //+------------------------------------------------------------------+
 //| Build a simple embed JSON with fields                            |
 //+------------------------------------------------------------------+
-string BuildEmbed(string title, int color, string fieldsJson,
-                  string footer = "OkiSignal • M15", string timestamp = "")
+string BuildEmbed(string title, int clr, string fieldsJson, string footer, string timestamp)
 {
+   if(footer == "") footer = "OkiSignal - M15";
    if(timestamp == "")
       timestamp = TimeToString(TimeCurrent(), TIME_DATE | TIME_SECONDS);
 
-   //--- Format timestamp to ISO 8601
    string iso = timestamp;
    StringReplace(iso, ".", "-");
-   // "2026-04-08 14:30:00" → "2026-04-08T14:30:00Z"
    if(StringFind(iso, "T") < 0)
       StringReplace(iso, " ", "T");
    if(StringFind(iso, "Z") < 0)
       iso += "Z";
 
-   string json = "{\"embeds\":[{"
-      "\"title\":\"" + JsonEscape(title) + "\","
-      "\"color\":" + IntegerToString(color) + ","
-      "\"fields\":[" + fieldsJson + "],"
-      "\"footer\":{\"text\":\"" + JsonEscape(footer) + "\"},"
-      "\"timestamp\":\"" + iso + "\""
-      "}]}";
+   string json = "{\"embeds\":[{";
+   json += "\"title\":\"" + JsonEscape(title) + "\",";
+   json += "\"color\":" + IntegerToString(clr) + ",";
+   json += "\"fields\":[" + fieldsJson + "],";
+   json += "\"footer\":{\"text\":\"" + JsonEscape(footer) + "\"},";
+   json += "\"timestamp\":\"" + iso + "\"";
+   json += "}]}";
 
    return json;
 }
@@ -104,9 +99,11 @@ string BuildEmbed(string title, int color, string fieldsJson,
 //+------------------------------------------------------------------+
 string EmbedField(string name, string value, bool isInline = true)
 {
-   return "{\"name\":\"" + JsonEscape(name) + "\","
-          "\"value\":\"" + JsonEscape(value) + "\","
-          "\"inline\":" + (isInline ? "true" : "false") + "}";
+   string inl = "true";
+   if(!isInline) inl = "false";
+   return "{\"name\":\"" + JsonEscape(name) + "\"," +
+          "\"value\":\"" + JsonEscape(value) + "\"," +
+          "\"inline\":" + inl + "}";
 }
 
 #endif

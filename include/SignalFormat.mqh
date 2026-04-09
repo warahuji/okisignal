@@ -33,7 +33,7 @@ string FormatSignalEmbed(SignalData &sig)
 {
    string dirEmoji = (sig.direction == "BUY") ? "BUY" : "SELL";
    string title = "SIGNAL --- " + sig.strategy;
-   int color = (sig.direction == "BUY") ? COLOR_GREEN : COLOR_RED;
+   int clr = (sig.direction == "BUY") ? COLOR_GREEN : COLOR_RED;
 
    double slPips  = PriceToPips(sig.symbol, sig.entry - sig.sl);
    double tp1Pips = PriceToPips(sig.symbol, sig.tp1 - sig.entry);
@@ -57,7 +57,7 @@ string FormatSignalEmbed(SignalData &sig)
 
    fields += EmbedField("Volume", DoubleToString(sig.volume, 2));
 
-   return BuildEmbed(title, color, fields);
+   return BuildEmbed(title, clr, fields, "", "");
 }
 
 //+------------------------------------------------------------------+
@@ -66,19 +66,19 @@ string FormatSignalEmbed(SignalData &sig)
 string FormatCloseEmbed(CloseData &cd)
 {
    string resultText;
-   int color;
+   int clr;
 
    if(cd.profit >= 0)
    {
       resultText = "+" + FormatPips(cd.profitPips) + " pips / +$" +
                    DoubleToString(cd.profit, 2);
-      color = COLOR_GREEN;
+      clr = COLOR_GREEN;
    }
    else
    {
       resultText = FormatPips(cd.profitPips) + " pips / $" +
                    DoubleToString(cd.profit, 2);
-      color = COLOR_RED;
+      clr = COLOR_RED;
    }
 
    string title = "CLOSED --- " + cd.strategy + " (" + cd.closeReason + ")";
@@ -105,7 +105,7 @@ string FormatCloseEmbed(CloseData &cd)
       EmbedField("Entry", FormatPrice(cd.symbol, cd.entry)) + "," +
       EmbedField("Exit", FormatPrice(cd.symbol, cd.closePrice));
 
-   return BuildEmbed(title, color, fields);
+   return BuildEmbed(title, clr, fields, "", "");
 }
 
 //+------------------------------------------------------------------+
@@ -137,7 +137,7 @@ string FormatWeeklyEmbed(string weekEnding, int totalTrades, int wins,
    if(pairBreakdown != "")
       fields += "," + EmbedField("Pair Breakdown", pairBreakdown, false);
 
-   return BuildEmbed(title, COLOR_BLUE, fields, "OkiSignal Weekly Report");
+   return BuildEmbed(title, COLOR_BLUE, fields, "OkiSignal Weekly Report", "");
 }
 
 #endif

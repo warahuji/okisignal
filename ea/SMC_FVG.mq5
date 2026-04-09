@@ -8,10 +8,10 @@
 #property version   "1.00"
 #property strict
 
-#include "../include/CommonDefs.mqh"
-#include "../include/ATRUtils.mqh"
-#include "../include/SignalFormat.mqh"
-#include "../include/DiscordWebhook.mqh"
+#include <OkiSignal/CommonDefs.mqh>
+#include <OkiSignal/ATRUtils.mqh>
+#include <OkiSignal/SignalFormat.mqh>
+#include <OkiSignal/DiscordWebhook.mqh>
 
 //--- Input Parameters
 input string   InpWebhookUrl    = "";              // Discord Webhook URL
