@@ -25,6 +25,8 @@ input int      InpATRPeriod     = 14;              // ATR期間
 input double   InpADRMaxRatio   = 0.8;             // ADR消費率上限
 input int      InpMagic         = MAGIC_SMC_FVG;   // Magic Number
 input bool     InpTradeEnabled  = true;            // 実トレードON/OFF
+input int      InpSessionStart  = 8;               // セッション開始(GMT時)
+input int      InpSessionEnd    = 21;              // セッション終了(GMT時)
 
 //--- FVG Zone structure
 struct FVGZone
@@ -286,12 +288,17 @@ void OnTick()
       ENUM_SIGNAL_DIR sig = CheckFVGRetest();
       if(sig != SIGNAL_NONE)
       {
+         //--- Session filter (GMT hour)
+         MqlDateTime dt;
+         TimeGMT(dt);
+         bool inSession = (InpSessionStart < InpSessionEnd) ?
+            (dt.hour >= InpSessionStart && dt.hour < InpSessionEnd) :
+            (dt.hour >= InpSessionStart || dt.hour < InpSessionEnd);
+         if(!inSession) sig = SIGNAL_NONE;
+
          //--- ADR filter
-         if(ADRRatio(_Symbol, 20) < InpADRMaxRatio)
+         if(sig != SIGNAL_NONE && ADRRatio(_Symbol, 20) < InpADRMaxRatio)
             ExecuteEntry(sig);
-         else
-            Print("ADR filter blocked entry: ratio=",
-                  DoubleToString(ADRRatio(_Symbol, 20), 2));
       }
    }
 
