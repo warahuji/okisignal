@@ -935,8 +935,12 @@ int OnInit()
             " session=", sessStarts[i], "-", sessEnds[i]);
    }
 
+   //--- Warm up: scan past bars to build Swing/BOS/FVG state immediately
+   for(int i = 0; i < g_numSymbols; i++)
+      WarmUp(g_states[i]);
+
    EventSetTimer(1);
-   Print("SMC_FVG_Multi initialized: ", g_numSymbols, " symbols");
+   Print("SMC_FVG_Multi initialized: ", g_numSymbols, " symbols (warm-up done)");
    return INIT_SUCCEEDED;
 }
 
@@ -992,6 +996,78 @@ bool IsSwingLow(string symbol, int shift, int swingLen)
       if(iLow(symbol, PERIOD_M15, shift - i) <= l) return false;
    }
    return true;
+}
+
+//+------------------------------------------------------------------+
+//| Warm up: scan past bars to build Swing/BOS/FVG state on startup  |
+//+------------------------------------------------------------------+
+void WarmUp(SymbolState &st)
+{
+   int lookback = 100;
+   int sw = st.swingLen;
+
+   //--- Phase 1: Find most recent Swing High and Swing Low
+   for(int bar = sw; bar < lookback; bar++)
+   {
+      if(st.lastSH == 0 && IsSwingHigh(st.symbol, bar, sw))
+         st.lastSH = iHigh(st.symbol, PERIOD_M15, bar);
+      if(st.lastSL == 0 && IsSwingLow(st.symbol, bar, sw))
+         st.lastSL = iLow(st.symbol, PERIOD_M15, bar);
+      if(st.lastSH > 0 && st.lastSL > 0) break;
+   }
+
+   if(st.lastSH == 0 || st.lastSL == 0)
+   {
+      Print(st.symbol, " WarmUp: insufficient swing data");
+      return;
+   }
+
+   //--- Phase 2: Scan for most recent BOS
+   for(int bar = 1; bar < lookback; bar++)
+   {
+      double cl = iClose(st.symbol, PERIOD_M15, bar);
+      if(cl > st.lastSH)
+      {
+         st.bullishBOS = true;
+         st.bearishBOS = false;
+         break;
+      }
+      else if(cl < st.lastSL)
+      {
+         st.bearishBOS = true;
+         st.bullishBOS = false;
+         break;
+      }
+   }
+
+   //--- Phase 3: Scan for most recent FVG (within last 30 bars)
+   for(int bar = 1; bar < 30; bar++)
+   {
+      double h0 = iHigh(st.symbol, PERIOD_M15, bar);
+      double l0 = iLow(st.symbol, PERIOD_M15, bar);
+      double h2 = iHigh(st.symbol, PERIOD_M15, bar + 2);
+      double l2 = iLow(st.symbol, PERIOD_M15, bar + 2);
+
+      if(st.bullishBOS && !st.bullishFVG.isValid && h2 < l0)
+      {
+         st.bullishFVG.lower = h2;
+         st.bullishFVG.upper = l0;
+         st.bullishFVG.isValid = true;
+      }
+      if(st.bearishBOS && !st.bearishFVG.isValid && l2 > h0)
+      {
+         st.bearishFVG.upper = l2;
+         st.bearishFVG.lower = h0;
+         st.bearishFVG.isValid = true;
+      }
+      if(st.bullishFVG.isValid || st.bearishFVG.isValid) break;
+   }
+
+   st.lastBarTime = iTime(st.symbol, PERIOD_M15, 0);
+
+   Print(st.symbol, " WarmUp: SH=", st.lastSH, " SL=", st.lastSL,
+         " BOS=", (st.bullishBOS ? "Bull" : (st.bearishBOS ? "Bear" : "None")),
+         " FVG=", (st.bullishFVG.isValid ? "Bull" : (st.bearishFVG.isValid ? "Bear" : "None")));
 }
 
 //+------------------------------------------------------------------+
