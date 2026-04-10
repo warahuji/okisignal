@@ -6,6 +6,20 @@ import os
 
 st.set_page_config(page_title="SMC_FVG Dashboard", page_icon="📊", layout="wide")
 
+def check_password():
+    """Simple password protection."""
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+    if st.session_state.authenticated:
+        return True
+    password = st.text_input("パスワードを入力してください", type="password")
+    if password == st.secrets.get("password", "okisignal2026"):
+        st.session_state.authenticated = True
+        st.rerun()
+    elif password:
+        st.error("パスワードが違います")
+    return False
+
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "..", "results")
 
 @st.cache_data(ttl=300)
@@ -276,6 +290,8 @@ def render_trades(df):
 
 
 def main():
+    if not check_password():
+        return
     render_header()
     df = load_trades()
 
