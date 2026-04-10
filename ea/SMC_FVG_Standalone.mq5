@@ -778,14 +778,14 @@ input int      InpMagicBase     = 106;             // Magic base (per-pair +inde
 input bool     InpTradeEnabled  = true;            // Live trade ON/OFF
 
 //--- Per-symbol parameters (CSV, order matches InpSymbols)
-input string   InpSymbols       = "USDJPY#,EURUSD#,GBPUSD#,AUDUSD#,GBPJPY#,EURJPY#,AUDJPY#";
-input string   InpSwingLens     = "4,8,6,7,7,5,7";
-input string   InpSLMults       = "0.75,2.50,1.00,2.25,2.50,2.00,2.50";
-input string   InpTP1Mults      = "2.50,2.25,2.50,1.75,2.00,2.50,2.25";
-input string   InpTP2Mults      = "3.5,4.5,2.5,5.0,5.0,4.0,3.0";
-input string   InpADRMaxRatios  = "0.5,0.7,0.6,0.5,0.6,0.9,0.6";
-input string   InpSessionStarts = "6,14,14,14,10,10,6";
-input string   InpSessionEnds   = "18,19,19,22,16,17,17";
+input string   InpSymbols       = "USDJPY#,EURUSD#,GBPUSD#,AUDUSD#,GBPJPY#,EURJPY#,AUDJPY#,GOLD#";
+input string   InpSwingLens     = "4,8,6,7,7,5,7,5";
+input string   InpSLMults       = "0.75,2.50,1.00,2.25,2.50,2.00,2.50,1.25";
+input string   InpTP1Mults      = "2.50,2.25,2.50,1.75,2.00,2.50,2.25,0.75";
+input string   InpTP2Mults      = "3.5,4.5,2.5,5.0,5.0,4.0,3.0,3.5";
+input string   InpADRMaxRatios  = "0.5,0.7,0.6,0.5,0.6,0.9,0.6,1.0";
+input string   InpSessionStarts = "6,14,14,14,10,10,6,4";
+input string   InpSessionEnds   = "18,19,19,22,16,17,17,19";
 
 //--- FVG Zone structure
 struct FVGZone
