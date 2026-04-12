@@ -181,9 +181,20 @@ double CalcLotSize(string symbol, double entryPrice, double slPrice,
    }
 
    double absLoss = MathAbs(lossPerLot);
-   if(absLoss < 0.01) return 0;
+   if(absLoss < 0.01)
+   {
+      Print(symbol, " OrderCalcProfit returned 0. Check Market Watch has conversion pairs (e.g. USDJPY#)");
+      return 0;
+   }
 
    double lot = riskMoney / absLoss;
+
+   //--- Safety cap: never exceed 5 lots regardless of calculation
+   if(lot > 5.0)
+   {
+      Print(symbol, " LOT SAFETY CAP: calculated=", DoubleToString(lot, 2), " capped to 5.0");
+      lot = 5.0;
+   }
 
    //--- Normalize to broker constraints
    double minLot  = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MIN);
