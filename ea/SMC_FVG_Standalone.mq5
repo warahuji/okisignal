@@ -165,17 +165,25 @@ double GetATR(string symbol, ENUM_TIMEFRAMES tf, int period, int shift = 0)
 double CalcLotSize(string symbol, double entryPrice, double slPrice,
                    double riskPercent)
 {
-   double slDistancePoints = MathAbs(entryPrice - slPrice) /
-                             SymbolInfoDouble(symbol, SYMBOL_POINT);
-   if(slDistancePoints == 0) return 0;
-
-   double tickValue = SymbolInfoDouble(symbol, SYMBOL_TRADE_TICK_VALUE);
-   double tickSize  = SymbolInfoDouble(symbol, SYMBOL_TRADE_TICK_SIZE);
-   double pointVal  = tickValue * SymbolInfoDouble(symbol, SYMBOL_POINT) / tickSize;
-   if(pointVal == 0) return 0;
+   if(MathAbs(entryPrice - slPrice) < SymbolInfoDouble(symbol, SYMBOL_POINT))
+      return 0;
 
    double riskMoney = AccountInfoDouble(ACCOUNT_BALANCE) * riskPercent / 100.0;
-   double lot = riskMoney / (slDistancePoints * pointVal);
+
+   //--- Use OrderCalcProfit for correct cross-currency lot calculation
+   //--- This handles GOLD/JPY account conversion automatically
+   double lossPerLot = 0;
+   ENUM_ORDER_TYPE testType = (entryPrice > slPrice) ? ORDER_TYPE_BUY : ORDER_TYPE_SELL;
+   if(!OrderCalcProfit(testType, symbol, 1.0, entryPrice, slPrice, lossPerLot))
+   {
+      Print(symbol, " OrderCalcProfit failed, error=", GetLastError());
+      return 0;
+   }
+
+   double absLoss = MathAbs(lossPerLot);
+   if(absLoss < 0.01) return 0;
+
+   double lot = riskMoney / absLoss;
 
    //--- Normalize to broker constraints
    double minLot  = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MIN);
@@ -185,6 +193,10 @@ double CalcLotSize(string symbol, double entryPrice, double slPrice,
    lot = MathMax(minLot, MathMin(maxLot, lot));
    lot = MathFloor(lot / lotStep) * lotStep;
    lot = NormalizeDouble(lot, 2);
+
+   Print(symbol, " LotCalc: risk=", DoubleToString(riskMoney, 0),
+         " lossPerLot=", DoubleToString(absLoss, 2),
+         " lot=", DoubleToString(lot, 2));
 
    return lot;
 }
